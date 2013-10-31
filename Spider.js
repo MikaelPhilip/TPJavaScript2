@@ -47,8 +47,7 @@ var queue = [];
 var nbResu = 0; /* On n'utilise pas la propriété queue.length à la place car celui-ci accumule l'ensemble des resultats des différentes recherches donc il indiquerait le nb de résultat de toutes les recherches et pas juste celui de la derniere recherche */
 var start = new Date().getTime();  
 /* ADD : expression réguliére pour trier liens finissant par des noms d'extension d'images */
-var EXTRACT_IMG_REG = new RegExp("\.(png|jpg|gif|bmp|ico)$","i");
-/* Le deuxiéme paramêtre "i" indique que l'on ient pas compte de la casse */
+var EXTRACT_IMG_REG = /\.(png|jpg|gif|bmp|ico)$/;
 
 /**
 * Get the page from `page_url`
@@ -63,6 +62,7 @@ em.emit('page:scraping', page_url);
 
 /* On indique que l'on débute la recherche à cette heure là (pour le calcul de la durée de la recherche) */
 start = new Date().getTime();  
+nbResu =0;
 // See: https://github.com/mikeal/request
 request({
 url:page_url,
@@ -81,7 +81,7 @@ return;
 /*ADD: Deux cas: si on veut les infos ou non*/
 /* Ajout d'un appel vers deux evenements si "infos" est vrai*/
 if(infos){
-em.emit('search:info',page_url, html_str);
+em.emit('search:info', html_str);
 }
 /* On rajoute l'argument pour l'evenement qui permet d'indiquer si on affiche que les images*/
 em.emit('page', page_url, html_str, img);
@@ -148,7 +148,7 @@ em.on('url', handle_new_url);
 
 /*ADD: Ajout des nouveaux évenements*/
 
-em.on('search:info', function(page_url, html_str){
+em.on('search:info', function(html_str){
 /* html_str contient tout le code source html de la page */
 /* Creation d'une variable pour récuperer le titre de la page */
 var pos1= html_str.indexOf("<title>");
@@ -162,7 +162,6 @@ em.on('search:stat', function(){
 /* Stat de la recherche : durée et nb de resultat */ 
 var elapsed = new Date().getTime() - start;   
 console.log("Nb de résultats: " + nbResu + " en : "+ elapsed +" ms");
-nbResu =0;
 });
  
 
