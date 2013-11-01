@@ -60,34 +60,34 @@ var url = require('url');
 
 /* MODIFY: get_page est modifiée de façon à acceuillir deux nouveaux arguments booléen : le premier "infos" permet de dire si on veut voir les détail sur la recherche, le second "img" permet d'indiquer si on cherche uniquement des images */
 function get_page(page_url,infos,img){
-em.emit('page:scraping', page_url);
+	em.emit('page:scraping', page_url);
 
-/* On indique que l'on débute la recherche à cette heure là (pour le calcul de la durée de la recherche) */
-start = new Date().getTime();  
-nbResu =0;
-// See: https://github.com/mikeal/request
-request({
-url:page_url,
-}, function(error, http_client_response, html_str){
-/**
-* The callback argument gets 3 arguments.
-* The first is an error when applicable (usually from the http.Client option not the http.ClientRequest object).
-* The second is an http.ClientResponse object.
-* The third is the response body String or Buffer.
-*/
+	/* On indique que l'on débute la recherche à cette heure là (pour le calcul de la durée de la recherche) */
+	start = new Date().getTime();  
+	nbResu =0;
+	// See: https://github.com/mikeal/request
+	request({
+	url:page_url,
+	}, function(error, http_client_response, html_str){
+	/**
+	* The callback argument gets 3 arguments.
+	* The first is an error when applicable (usually from the http.Client option not the http.ClientRequest object).
+	* The second is an http.ClientResponse object.
+	* The third is the response body String or Buffer.
+	*/
 
-if(error){
-em.emit('page:error', page_url, error);
-return;
-}
-/*ADD: Deux cas: si on veut les infos ou non*/
-/* On rajoute les deux arguments , pour l'evenement, qui permet d'indiquer si on affiche que les images et si l'on souhaite les infos*/
-em.emit('page', page_url, html_str, img, infos);
-/* Ajout d'un appel vers un evenement si "infos" est vrai*/
-if(infos){
-em.emit('search:stat',page_url, html_str);
-}
-});
+		if(error){
+			em.emit('page:error', page_url, error);
+		return;
+		}
+		/*ADD: Deux cas: si on veut les infos ou non*/
+		/* On rajoute les deux arguments , pour l'evenement, qui permet d'indiquer si on affiche que les images et si l'on souhaite les infos*/
+			em.emit('page', page_url, html_str, img, infos);
+		/* Ajout d'un appel vers un evenement si "infos" est vrai*/
+		if(infos){
+			em.emit('search:stat',page_url, html_str);
+		}
+	});
 }
  
 /**
@@ -98,47 +98,47 @@ em.emit('search:stat',page_url, html_str);
 */
 /* MODIFY: ajout d'un argument "img" et "infos"*/
 function extract_links(page_url, html_str, img, infos){
-// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/match
-// "match" can return "null" instead of an array of url
-// So here I do "(match() || []) in order to always work on an array (and yes, that's another pattern).
-(html_str.match(EXTRACT_URL_REG) || []).forEach(function(url){
-// see: http://nodejs.org/api/all.html#all_emitter_emit_event_arg1_arg2
-/* Si l'on veut que les images et que le lien pointe vers une image où si l'on veut pas les images et que le lien n'est pas une image alors on le rajoute à la liste*/
-if((img && url.match(EXTRACT_IMG_REG))||(!img && !url.match(EXTRACT_IMG_REG))){
-em.emit('url', page_url,html_str, url);
-if (infos){
-em.emit('search:info', url);
-}
-}
-});
+	// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/match
+	// "match" can return "null" instead of an array of url
+	// So here I do "(match() || []) in order to always work on an array (and yes, that's another pattern).
+	(html_str.match(EXTRACT_URL_REG) || []).forEach(function(url){
+		// see: http://nodejs.org/api/all.html#all_emitter_emit_event_arg1_arg2
+		/* Si l'on veut que les images et que le lien pointe vers une image où si l'on veut pas les images et que le lien n'est pas une image alors on le rajoute à la liste*/
+		if((img && url.match(EXTRACT_IMG_REG))||(!img && !url.match(EXTRACT_IMG_REG))){
+			em.emit('url', page_url,html_str, url);
+			if (infos){
+				em.emit('search:info', url);
+			}
+		}
+	});
 }
  
  
 function handle_new_url(from_page_url, from_page_str, url){
-// Add the url to the queue
-queue.push(url);
+	// Add the url to the queue
+	queue.push(url);
 }
  
  
 em.on('page:scraping', function(page_url){
-console.log('Loading... ', page_url);
+	console.log('Loading... ', page_url);
 });
  
 // Listen to events, see: http://nodejs.org/api/all.html#all_emitter_on_event_listener
 em.on('page', function(page_url, html_str){
-console.log('We got a new page!', page_url);
+	console.log('We got a new page!', page_url);
 });
  
 em.on('page:error', function(page_url, error){
-console.error('Oops an error occured on', page_url, ' : ', error);
+	console.error('Oops an error occured on', page_url, ' : ', error);
 });
  
 em.on('page', extract_links);
  
 em.on('url', function(page_url, html_str, url){
-console.log('We got a link! ', url);
-/*ADD: Incrementetation du nombre de résultat*/
-nbResu++;
+	console.log('We got a link! ', url);
+	/*ADD: Incrementetation du nombre de résultat*/
+	nbResu++;
 });
  
 em.on('url', handle_new_url);
@@ -146,47 +146,47 @@ em.on('url', handle_new_url);
 /*ADD: Ajout des nouveaux évenements*/
 
 em.on('search:info', function(newUrl){
-//See: http://nodejs.org/docs/v0.4.11/api/http.html#http.ServerRequest
+	//See: http://nodejs.org/docs/v0.4.11/api/http.html#http.ServerRequest
 
-/* On doit à partir de l'url obtenu récupérer le chemin et le nom d'hote sans le protocole devant */
+	/* On doit à partir de l'url obtenu récupérer le chemin et le nom d'hote sans le protocole devant */
 
-/* Recuperer le chemin */
-var parseUrl = url.parse(newUrl,true);
-var pathUrl = parseUrl.pathname;
+	/* Recuperer le chemin */
+	var parseUrl = url.parse(newUrl,true);
+	var pathUrl = parseUrl.pathname;
 
-/* Le nom d'hote sans le protocole */
-var posf= newUrl.indexOf(parseUrl.pathname); //On détermine la position du prémier caractére qui indique le chemin
-var hoteUrl = newUrl.slice(0,posf);
-var proto = hoteUrl.split("://"); //On sépare le protocole du reste
-hoteUrl = proto[1]; //On récupére le nom de l'hote
+	/* Le nom d'hote sans le protocole */
+	var posf= newUrl.indexOf(parseUrl.pathname); //On détermine la position du prémier caractére qui indique le chemin
+	var hoteUrl = newUrl.slice(0,posf);
+	var proto = hoteUrl.split("://"); //On sépare le protocole du reste
+	hoteUrl = proto[1]; //On récupére le nom de l'hote
 
-/* Var option est un objet qui contient les propriétés nécesaires pour obtenir la page html*/
-var options = {
-host: hoteUrl,
-port: 80,
-path: pathUrl
-};
-/* Appel de la fonction get pour avoir en réponse la page html correspondant à l'url*/
-http.get(options, function(res) {
-/* On recupére le corps de réponse contenant le code html de la page*/
-res.on('data', function (chunk) {
-var html = new String(chunk);
-var pos1= html.indexOf("<title>");
-var pos2= html.indexOf("</title>");
-var title= html.slice((pos1+7),pos2);
-/* Si on a trouvé la balise <title> et </title> alors */
-if (pos1 !== -1 && pos2 !== -1){
-console.log("Titre de la page:" + title);
-}
-});
-}).on('error', function(e) {
-});
+	/* Var option est un objet qui contient les propriétés nécesaires pour obtenir la page html*/
+	var options = {
+		host: hoteUrl,
+		port: 80,
+		path: pathUrl
+	};
+	/* Appel de la fonction get pour avoir en réponse la page html correspondant à l'url*/
+	http.get(options, function(res) {
+		/* On recupére le corps de réponse contenant le code html de la page*/
+		res.on('data', function (chunk) {
+			var html = new String(chunk);
+			var pos1= html.indexOf("<title>");
+			var pos2= html.indexOf("</title>");
+			var title= html.slice((pos1+7),pos2);
+			/* Si on a trouvé la balise <title> et </title> alors */
+			if (pos1 !== -1 && pos2 !== -1){
+				console.log("Titre de la page:" + title);
+			}
+		});
+	}).on('error', function(e) {
+	});
 });
 
 em.on('search:stat', function(){
-/* Stat de la recherche : durée et nb de resultat */ 
-var elapsed = new Date().getTime() - start;   
-console.log("Nb de résultats: " + nbResu + " en : "+ elapsed +" ms");
+	/* Stat de la recherche : durée et nb de resultat */ 
+	var elapsed = new Date().getTime() - start;   
+	console.log("Nb de résultats: " + nbResu + " en : "+ elapsed +" ms");
 });
  
 
