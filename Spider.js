@@ -12,10 +12,14 @@
 *
 *Séparation des url des sites et des url qui pointent vers des images: suivant le choix fait on affichera que les url de site web ou que les url des images en lien avec la recherche effectuée. 
 *
-*Et enfin on a deux options supplémentaires lors du lancement de la recherche pour indiquer si on cherche des images ou des sites et si on veut voir les infos supplémentaires sur la recherche ou juste la liste des liens.
+*On a trois options supplémentaires lors du lancement de la recherche pour indiquer si on cherche des images ou des sites et si on veut voir les infos supplémentaires sur la recherche ou juste la liste des liens enfin la derniére option indique si l'on souhaite suavegarder la recherche dans une BDD.
 *
+*Ajout de la possibilité de sauvegarder sur une base de donnée les résultats d'une recherche
 *ADD: Ajout fait pour le tp.
 *MODIFY: Modification effectuée pour le tp.
+
+TODO: On n'enregistre qu'un lien (créer une nouvelle instance à chaque fois) et la BDD est écrsé a chaque fois
+TODO: Récuperer les autres infos pour la bdd
 */
  
 // Url regexp from http://daringfireball.net/2010/07/improved_regex_for_matching_urls
@@ -48,9 +52,24 @@ var nbResu = 0; /* On n'utilise pas la propriété queue.length à la place car 
 var start = new Date().getTime();  
 /* ADD : expression réguliére pour trier liens finissant par des noms d'extension d'images */
 var EXTRACT_IMG_REG = /\.(png|jpg|gif|bmp|ico)$/;
-/*ADD : modules nécessaires pour l'affichage des titres*/ 
+/*ADD : modules nécessaires pour l'affichage des titres et pour la sauvegarde des recherche dans une bdd*/ 
 var http = require('http');
 var url = require('url');
+var mongoose = require('mongoose');
+
+// Création du schéma c'est à dire l'équivalent d'une table sql pour enregistrer les résultats
+var results = new mongoose.Schema({
+  link : { type : String}
+});
+ 
+// Création du modéle : c'est à dire d'une variable qui va servir à rajouter des données dans la table
+var result = mongoose.model('commentaires', results);
+
+// On crée une instance pour enregistrer les donnée
+var line = new result();
+
+
+
 /**
 * Get the page from `page_url`
 * @param {String} page_url String page url to get
@@ -58,8 +77,20 @@ var url = require('url');
 * `get_page` will emit
 */
 
+/* ADD: Fonction qui permet d'indiquer et de sa connecter sur une BDD*/
+//See: http://atinux.developpez.com/tutoriels/javascript/mongodb-nodejs-mongoose/
+function init_bdd(){
+mongoose.connect('mongodb://localhost/Spider', function(err) {
+  if (err) { throw err; }
+});
+}
+
+/* ADD: Fonction qui arrete la connexion à la BDD*/
+function stop_bdd(){
+mongoose.connection.close();
+}
 /* MODIFY: get_page est modifiée de façon à acceuillir deux nouveaux arguments booléen : le premier "infos" permet de dire si on veut voir les détail sur la recherche, le second "img" permet d'indiquer si on cherche uniquement des images */
-function get_page(page_url,infos,img){
+function get_page(page_url,infos,img,sauv){
 em.emit('page:scraping', page_url);
 
 /* On indique que l'on débute la recherche à cette heure là (pour le calcul de la durée de la recherche) */
@@ -76,16 +107,23 @@ url:page_url,
 * The third is the response body String or Buffer.
 */
 
+/* ADD: Si on veut sauvegarder la rechecher on appelle la méthode qui établi une connexion avec la bdd*/
+if(sauv){
+init_bdd();
+}
 if(error){
 em.emit('page:error', page_url, error);
 return;
 }
 /*ADD: Deux cas: si on veut les infos ou non*/
-/* On rajoute les deux arguments , pour l'evenement, qui permet d'indiquer si on affiche que les images et si l'on souhaite les infos*/
-em.emit('page', page_url, html_str, img, infos);
+/* On rajoute les deux arguments , pour l'evenement, qui permet d'indiquer si on affiche que les images et si l'on souhaite les infos et si l'on sauvegarde*/
+em.emit('page', page_url, html_str, img, infos, sauv);
 /* Ajout d'un appel vers un evenement si "infos" est vrai*/
 if(infos){
 em.emit('search:stat',page_url, html_str);
+}
+if(sauv){
+stop_bdd();
 }
 });
 }
@@ -97,7 +135,7 @@ em.emit('search:stat',page_url, html_str);
 * `extract_links` should emit an `link(` event each
 */
 /* MODIFY: ajout d'un argument "img" et "infos"*/
-function extract_links(page_url, html_str, img, infos){
+function extract_links(page_url, html_str, img, infos,sauv){
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/match
 // "match" can return "null" instead of an array of url
 // So here I do "(match() || []) in order to always work on an array (and yes, that's another pattern).
@@ -105,7 +143,7 @@ function extract_links(page_url, html_str, img, infos){
 // see: http://nodejs.org/api/all.html#all_emitter_emit_event_arg1_arg2
 /* Si l'on veut que les images et que le lien pointe vers une image où si l'on veut pas les images et que le lien n'est pas une image alors on le rajoute à la liste*/
 if((img && url.match(EXTRACT_IMG_REG))||(!img && !url.match(EXTRACT_IMG_REG))){
-em.emit('url', page_url,html_str, url);
+em.emit('url', page_url,html_str, url,sauv);
 if (infos){
 em.emit('search:info', url);
 }
@@ -135,10 +173,17 @@ console.error('Oops an error occured on', page_url, ' : ', error);
  
 em.on('page', extract_links);
  
-em.on('url', function(page_url, html_str, url){
+em.on('url', function(page_url, html_str, url,sauv){
 console.log('We got a link! ', url);
 /*ADD: Incrementetation du nombre de résultat*/
 nbResu++;
+/*ADD: Si on a prévus de sauvegarder alors on enregistre une nouvelle ligne*/
+if(sauv){
+line.link= 'Url trouvé:' + url;
+line.save(function (err) {
+  if (err) { throw err; }
+});
+}
 });
  
 em.on('url', handle_new_url);
