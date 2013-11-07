@@ -6,20 +6,19 @@
 
 /** Améliorations par rapport au modéle de base:
 *
-*Plus d'infos pour chaque url trouvé: Le titre de la page apparait si elle existe (A noter que cette amélioration à un probleme: malgré l'ordre d'execution dans le code,l'affichage des titres ce fait aprés la liste des liens trouvé (chaque titre devrait en dessous du lien qui correspond).
+*Plus d'infos pour chaque url trouvé: Le titre de la page apparait si elle existe (A noter que cette amélioration à un probleme: malgré l'ordre d'execution dans le code, l'affichage des titres ce fait aprés la liste des liens trouvé (chaque titre devrait en dessous du lien qui correspond).
 *
 *Des stats pour les recherches: nombres de résultats trouvés, temps d'execution de la recherche.
 *
-*Séparation des url des sites et des url qui pointent vers des images: suivant le choix fait on affichera que les url de site web ou que les url des images en lien avec la recherche effectuée. 
+*Séparation des url des sites et des url qui pointent vers des images: suivant le choix fait on affichera que les url de site web ou que les url des images en lien avec la recherche effectuée afin que notre recherche ne soit pas "parasité" par des les listes d'images quand on veut que des sites web 
+*
+*Ajout de la possibilité de sauvegarder sur une base de donnée les résultats d'une recherche mais aussi le contenu html des pages si l'on souhaite plus des informations supplémentaires.
 *
 *On a trois options supplémentaires lors du lancement de la recherche pour indiquer si on cherche des images ou des sites et si on veut voir les infos supplémentaires sur la recherche ou juste la liste des liens enfin la derniére option indique si l'on souhaite suavegarder la recherche dans une BDD.
 *
-*Ajout de la possibilité de sauvegarder sur une base de donnée les résultats d'une recherche
 *ADD: Ajout fait pour le tp.
+*
 *MODIFY: Modification effectuée pour le tp.
-
-TODO: On n'enregistre qu'un lien (créer une nouvelle instance à chaque fois) et la BDD est écrsé a chaque fois
-TODO: Récuperer les autres infos pour la bdd
 */
  
 // Url regexp from http://daringfireball.net/2010/07/improved_regex_for_matching_urls
@@ -52,22 +51,27 @@ var nbResu = 0; /* On n'utilise pas la propriété queue.length à la place car 
 var start = new Date().getTime();  
 /* ADD : expression réguliére pour trier liens finissant par des noms d'extension d'images */
 var EXTRACT_IMG_REG = /\.(png|jpg|gif|bmp|ico)$/;
-/*ADD : modules nécessaires pour l'affichage des titres et pour la sauvegarde des recherche dans une bdd*/ 
+/*ADD : modules nécessaires pour l'affichage des titres et pour la sauvegarde des recherches dans une bdd*/ 
 var http = require('http');
 var url = require('url');
 var mongoose = require('mongoose');
 
-// Création du schéma c'est à dire l'équivalent d'une table sql pour enregistrer les résultats
+// Création des schémas c'est à dire la création d'une structure qui l'équivalent d'une table sql pour enregistrer les résultats
 var results = new mongoose.Schema({
   link : { type : String}
 });
+
+var html_contents = new mongoose.Schema({
+  link : { type : String},
+  content : { type : String}
+});
  
-// Création du modéle : c'est à dire d'une variable qui va servir à rajouter des données dans la table
-var result = mongoose.model('commentaires', results);
+// Création des modéles : c'est à dire des objets qui vont servir à rajouter des données dans la table
 
-// On crée une instance pour enregistrer les donnée
-var line = new result();
-
+//Une pour les résultats de la recherche
+var result = mongoose.model('resultats', results);
+//Une autre pour enregistrer le contenu html des pages obtenus
+var html_content = mongoose.model('content', html_contents);
 
 
 /**
@@ -77,7 +81,7 @@ var line = new result();
 * `get_page` will emit
 */
 
-/* ADD: Fonction qui permet d'indiquer et de sa connecter sur une BDD*/
+/* ADD: Fonction qui permet d'indiquer et de se connecter sur une BDD*/
 //See: http://atinux.developpez.com/tutoriels/javascript/mongodb-nodejs-mongoose/
 function init_bdd(){
 mongoose.connect('mongodb://localhost/Spider', function(err) {
@@ -89,11 +93,11 @@ mongoose.connect('mongodb://localhost/Spider', function(err) {
 function stop_bdd(){
 mongoose.connection.close();
 }
-/* MODIFY: get_page est modifiée de façon à acceuillir deux nouveaux arguments booléen : le premier "infos" permet de dire si on veut voir les détail sur la recherche, le second "img" permet d'indiquer si on cherche uniquement des images */
+/* MODIFY: get_page est modifiée de façon à acceuillir trois nouveaux arguments booléen : le premier "infos" permet de dire si on veut voir les détail sur la recherche, le second "img" permet d'indiquer si on cherche uniquement des images et le dernier "sauv" qui indique si l'on veut sauvegarder dans une bdd la recherche */
 function get_page(page_url,infos,img,sauv){
 em.emit('page:scraping', page_url);
 
-/* On indique que l'on débute la recherche à cette heure là (pour le calcul de la durée de la recherche) */
+/* Initialisation des variables des stats des recherches (pour le calcul de la durée de la recherche) */
 start = new Date().getTime();  
 nbResu =0;
 // See: https://github.com/mikeal/request
@@ -116,7 +120,7 @@ em.emit('page:error', page_url, error);
 return;
 }
 /*ADD: Deux cas: si on veut les infos ou non*/
-/* On rajoute les deux arguments , pour l'evenement, qui permet d'indiquer si on affiche que les images et si l'on souhaite les infos et si l'on sauvegarde*/
+/* On rajoute les trois arguments , pour l'evenement, qui permet d'indiquer si on affiche que les images, si l'on souhaite les infos et si l'on veut sauvegarder*/
 em.emit('page', page_url, html_str, img, infos, sauv);
 /* Ajout d'un appel vers un evenement si "infos" est vrai*/
 if(infos){
@@ -143,9 +147,9 @@ function extract_links(page_url, html_str, img, infos,sauv){
 // see: http://nodejs.org/api/all.html#all_emitter_emit_event_arg1_arg2
 /* Si l'on veut que les images et que le lien pointe vers une image où si l'on veut pas les images et que le lien n'est pas une image alors on le rajoute à la liste*/
 if((img && url.match(EXTRACT_IMG_REG))||(!img && !url.match(EXTRACT_IMG_REG))){
-em.emit('url', page_url,html_str, url,sauv);
+em.emit('url', page_url,html_str, url, sauv);
 if (infos){
-em.emit('search:info', url);
+em.emit('search:info', url, sauv);
 }
 }
 });
@@ -179,18 +183,21 @@ console.log('We got a link! ', url);
 nbResu++;
 /*ADD: Si on a prévus de sauvegarder alors on enregistre une nouvelle ligne*/
 if(sauv){
-line.link= 'Url trouvé:' + url;
+// On crée une instance pour enregistrer la donnée
+var line = new result();
+line.link= url;
 line.save(function (err) {
   if (err) { throw err; }
 });
 }
+
 });
  
 em.on('url', handle_new_url);
 
 /*ADD: Ajout des nouveaux évenements*/
 
-em.on('search:info', function(newUrl){
+em.on('search:info', function(newUrl,sauv){
 //See: http://nodejs.org/docs/v0.4.11/api/http.html#http.ServerRequest
 
 /* On doit à partir de l'url obtenu récupérer le chemin et le nom d'hote sans le protocole devant */
@@ -215,7 +222,7 @@ path: pathUrl
 http.get(options, function(res) {
 /* On recupére le corps de réponse contenant le code html de la page*/
 res.on('data', function (chunk) {
-var html = new String(chunk);
+var html = chunk +"";
 var pos1= html.indexOf("<title>");
 var pos2= html.indexOf("</title>");
 var title= html.slice((pos1+7),pos2);
@@ -223,8 +230,19 @@ var title= html.slice((pos1+7),pos2);
 if (pos1 !== -1 && pos2 !== -1){
 console.log("Titre de la page:" + title);
 }
+/*si on souhaite sauvegarder le contenus de la page trouvé dans une BDD*/
+if(sauv){
+// On crée une instance pour enregistrer la donnée
+var content = new html_content();
+content.link = newUrl;
+content.content = html;
+content.save(function (err) {
+  if (err) { throw err; }
+});
+}
 });
 }).on('error', function(e) {
+console.log("Erreur:" +e);
 });
 });
 
