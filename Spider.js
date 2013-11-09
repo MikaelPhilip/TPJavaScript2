@@ -6,7 +6,7 @@
 
 /** Améliorations par rapport au modéle de base:
 *
-*Plus d'infos pour chaque url trouvé: Le titre de la page apparait si elle existe (A noter que cette amélioration à un probleme: malgré l'ordre d'execution dans le code, l'affichage des titres ce fait aprés la liste des liens trouvé (chaque titre devrait en dessous du lien qui correspond).
+*Plus d'infos pour chaque url trouvé: Le titre de la page apparait si elle existe (A noter que cette amélioration à un probleme: malgré l'ordre d'execution dans le code, l'affichage des titres ce fait aprés la liste des liens trouvé (chaque titre devrait en dessous du lien qui correspond, corrigable avec une API).
 *
 *Des stats pour les recherches: nombres de résultats trouvés, temps d'execution de la recherche.
 *
@@ -26,16 +26,13 @@ var EXTRACT_URL_REG = /\b((?:https?:\/\/|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}
 var PORT = 3000;
  
 var request = require('request');
- 
 // See: http://expressjs.com/guide.html
 var express = require('express');
 var app = express();
-
 var EventEmitter = require('events').EventEmitter;
- 
+
 // We create a global EventEmitter (Mediator pattern: http://en.wikipedia.org/wiki/Mediator_pattern )
 var em = new EventEmitter();
- 
 /**
 * Remainder:
 * queue.push("http://..."); // add an element at the end of the queue
@@ -46,31 +43,29 @@ var em = new EventEmitter();
 */
 var queue = [];
 
-/* ADD: Variables pour compter le nb de résultats et la durée de la recherche */
-var nbResu = 0; /* On n'utilise pas la propriété queue.length à la place car celui-ci accumule l'ensemble des resultats des différentes recherches donc il indiquerait le nb de résultat de toutes les recherches et pas juste celui de la derniere recherche */
-var start = new Date().getTime();  
-/* ADD : expression réguliére pour trier liens finissant par des noms d'extension d'images */
-var EXTRACT_IMG_REG = /\.(png|jpg|gif|bmp|ico)$/;
-/*ADD : modules nécessaires pour l'affichage des titres et pour la sauvegarde des recherches dans une bdd*/ 
+// ADD : modules nécessaires pour l'affichage des titres et pour la sauvegarde des recherches dans une bdd 
 var http = require('http');
 var url = require('url');
 var mongoose = require('mongoose');
 
-// Création des schémas c'est à dire la création d'une structure qui l'équivalent d'une table sql pour enregistrer les résultats
-var results = new mongoose.Schema({
-  link : { type : String}
-});
+// ADD: Variables pour compter le nb de résultats et la durée de la recherche 
+var nbResu = 0; // On n'utilise pas la propriété queue.length à la place car celui-ci accumule l'ensemble des resultats des différentes recherches donc il indiquerait le nb de résultat de toutes les recherches et pas juste celui de la derniere recherche
+var start = new Date().getTime();  
+var EXTRACT_IMG_REG = /\.(png|jpg|gif|bmp|ico)$/; //Expression réguliére pour trier liens finissant par des noms d'extension d'images
 
+// ADD: Création des schémas c'est à dire la création d'une structure qui est l'équivalent d'une table sql pour enregistrer les résultats
+var results = new mongoose.Schema({
+  link : { type : String} 
+});
+// Cette table sauvegardera que les liens trouvés
 var html_contents = new mongoose.Schema({
   link : { type : String},
   content : { type : String}
 });
+// Cette table sauvegardera les liens trouvés et le contenu des pages de chaque liens
  
-// Création des modéles : c'est à dire des objets qui vont servir à rajouter des données dans la table
-
-//Une pour les résultats de la recherche
+// ADD: Création des modéles : c'est à dire des objets qui vont servir à rajouter des données dans la table
 var result = mongoose.model('resultats', results);
-//Une autre pour enregistrer le contenu html des pages obtenus
 var html_content = mongoose.model('content', html_contents);
 
 
@@ -81,7 +76,7 @@ var html_content = mongoose.model('content', html_contents);
 * `get_page` will emit
 */
 
-/* ADD: Fonction qui permet d'indiquer et de se connecter sur une BDD*/
+/* ADD: Fonction qui permet d'indiquer et de se connecter sur la BDD*/
 //See: http://atinux.developpez.com/tutoriels/javascript/mongodb-nodejs-mongoose/
 function init_bdd(){
 mongoose.connect('mongodb://localhost/Spider', function(err) {
@@ -89,29 +84,26 @@ mongoose.connect('mongodb://localhost/Spider', function(err) {
 });
 }
 
-/* ADD: Fonction qui arrete la connexion à la BDD*/
+
+/* ADD: Fonction qui coupe la connexion à la BDD*/
 function stop_bdd(){
 mongoose.connection.close();
 }
-/* MODIFY: get_page est modifiée de façon à acceuillir trois nouveaux arguments booléen : le premier "infos" permet de dire si on veut voir les détail sur la recherche, le second "img" permet d'indiquer si on cherche uniquement des images et le dernier "sauv" qui indique si l'on veut sauvegarder dans une bdd la recherche */
+/* MODIFY: get_page est modifiée de façon à acceuillir trois nouveaux arguments booléen : 
+*"infos" permet de dire si on veut voir les détail sur la recherche.
+*"img" permet d'indiquer si on cherche uniquement des images.
+*"sauv" indique si l'on veut sauvegarder dans une bdd la recherche. */
 function get_page(page_url,infos,img,sauv){
 em.emit('page:scraping', page_url);
 
-/* Initialisation des variables des stats des recherches (pour le calcul de la durée de la recherche) */
+//Initialisation des variables des stats des recherches (pour le calcul de la durée de la recherche)
 start = new Date().getTime();  
 nbResu =0;
 // See: https://github.com/mikeal/request
 request({
 url:page_url,
 }, function(error, http_client_response, html_str){
-/**
-* The callback argument gets 3 arguments.
-* The first is an error when applicable (usually from the http.Client option not the http.ClientRequest object).
-* The second is an http.ClientResponse object.
-* The third is the response body String or Buffer.
-*/
-
-/* ADD: Si on veut sauvegarder la rechecher on appelle la méthode qui établi une connexion avec la bdd*/
+// ADD: Si on veut sauvegarder la recherche on appelle la méthode qui établi une connexion avec la bdd
 if(sauv){
 init_bdd();
 }
@@ -119,10 +111,10 @@ if(error){
 em.emit('page:error', page_url, error);
 return;
 }
-/*ADD: Deux cas: si on veut les infos ou non*/
-/* On rajoute les trois arguments , pour l'evenement, qui permet d'indiquer si on affiche que les images, si l'on souhaite les infos et si l'on veut sauvegarder*/
+// ADD: Deux cas: si on veut les infos ou non
+// On rajoute les trois arguments , pour l'evenement, qui permet d'indiquer si on affiche que les images, si l'on souhaite les infos et si l'on veut sauvegarder dans une bdd la recherche
 em.emit('page', page_url, html_str, img, infos, sauv);
-/* Ajout d'un appel vers un evenement si "infos" est vrai*/
+// Ajout d'un appel vers un evenement si "infos" est vrai
 if(infos){
 em.emit('search:stat',page_url, html_str);
 }
@@ -138,14 +130,14 @@ stop_bdd();
 *
 * `extract_links` should emit an `link(` event each
 */
-/* MODIFY: ajout d'un argument "img" et "infos"*/
+// MODIFY: ajout de deux argument "img" et "infos"
 function extract_links(page_url, html_str, img, infos,sauv){
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/match
 // "match" can return "null" instead of an array of url
 // So here I do "(match() || []) in order to always work on an array (and yes, that's another pattern).
 (html_str.match(EXTRACT_URL_REG) || []).forEach(function(url){
 // see: http://nodejs.org/api/all.html#all_emitter_emit_event_arg1_arg2
-/* Si l'on veut que les images et que le lien pointe vers une image où si l'on veut pas les images et que le lien n'est pas une image alors on le rajoute à la liste*/
+// Si l'on veut que les images et que le lien pointe vers une image où si l'on veut pas les images et que le lien n'est pas une image alors on le rajoute à la liste des liens trouvés
 if((img && url.match(EXTRACT_IMG_REG))||(!img && !url.match(EXTRACT_IMG_REG))){
 em.emit('url', page_url,html_str, url, sauv);
 if (infos){
@@ -165,23 +157,27 @@ queue.push(url);
 em.on('page:scraping', function(page_url){
 console.log('Loading... ', page_url);
 });
- 
+
+
 // Listen to events, see: http://nodejs.org/api/all.html#all_emitter_on_event_listener
 em.on('page', function(page_url, html_str){
 console.log('We got a new page!', page_url);
 });
- 
+
+
 em.on('page:error', function(page_url, error){
 console.error('Oops an error occured on', page_url, ' : ', error);
 });
- 
+
+
 em.on('page', extract_links);
- 
+
+
 em.on('url', function(page_url, html_str, url,sauv){
 console.log('We got a link! ', url);
-/*ADD: Incrementetation du nombre de résultat*/
+// ADD: Incrementetation du nombre de résultat
 nbResu++;
-/*ADD: Si on a prévus de sauvegarder alors on enregistre une nouvelle ligne*/
+// ADD: Si on a prévus de sauvegarder alors on enregistre une nouvelle ligne
 if(sauv){
 // On crée une instance pour enregistrer la donnée
 var line = new result();
@@ -190,35 +186,35 @@ line.save(function (err) {
   if (err) { throw err; }
 });
 }
-
 });
- 
+
+
 em.on('url', handle_new_url);
 
-/*ADD: Ajout des nouveaux évenements*/
+//ADD: Ajout des nouveaux évenements
 
 em.on('search:info', function(newUrl,sauv){
 //See: http://nodejs.org/docs/v0.4.11/api/http.html#http.ServerRequest
+//On doit à partir de l'url obtenu récupérer le chemin et le nom d'hote sans le protocole devant
 
-/* On doit à partir de l'url obtenu récupérer le chemin et le nom d'hote sans le protocole devant */
-
-/* Recuperer le chemin */
-var parseUrl = url.parse(newUrl,true);
+// Recuperer le chemin
+var parseUrl = url.parse(newUrl,true); //on se sert d'un module pour récuperer le chemin
 var pathUrl = parseUrl.pathname;
 
-/* Le nom d'hote sans le protocole */
+// Le nom d'hote sans le protocole
 var posf= newUrl.indexOf(parseUrl.pathname); //On détermine la position du prémier caractére qui indique le chemin
 var hoteUrl = newUrl.slice(0,posf);
 var proto = hoteUrl.split("://"); //On sépare le protocole du reste
 hoteUrl = proto[1]; //On récupére le nom de l'hote
 
-/* Var option est un objet qui contient les propriétés nécesaires pour obtenir la page html*/
+// Var option est un objet qui contient les propriétés nécesaires pour obtenir la page html
 var options = {
 host: hoteUrl,
 port: 80,
 path: pathUrl
 };
-/* Appel de la fonction get pour avoir en réponse la page html correspondant à l'url*/
+
+// Appel de la fonction get pour avoir en réponse la page html correspondant à l'url: c'est une requete GET en HTTP qui est envoyé
 http.get(options, function(res) {
 /* On recupére le corps de réponse contenant le code html de la page*/
 res.on('data', function (chunk) {
@@ -226,11 +222,11 @@ var html = chunk +"";
 var pos1= html.indexOf("<title>");
 var pos2= html.indexOf("</title>");
 var title= html.slice((pos1+7),pos2);
-/* Si on a trouvé la balise <title> et </title> alors */
+// Si on a trouvé la balise <title> et </title> alors
 if (pos1 !== -1 && pos2 !== -1){
 console.log("Titre de la page:" + title);
 }
-/*si on souhaite sauvegarder le contenus de la page trouvé dans une BDD*/
+// Si on souhaite sauvegarder le contenus de la page trouvé dans une BDD
 if(sauv){
 // On crée une instance pour enregistrer la donnée
 var content = new html_content();
@@ -246,8 +242,9 @@ console.log("Erreur:" +e);
 });
 });
 
+
 em.on('search:stat', function(){
-/* Stat de la recherche : durée et nb de resultat */ 
+// Stat de la recherche : durée et nb de résultat 
 var elapsed = new Date().getTime() - start;   
 console.log("Nb de résultats: " + nbResu + " en : "+ elapsed +" ms");
 });
@@ -303,4 +300,4 @@ app.listen(PORT);
 console.log('Web UI Listening on port '+PORT);
  
 // #debug Start the crawler with a link
-get_page('http://twitter.com/FGRibreau');
+get_page('http://twitter.com/FGRibreau'); //Pour activer les options get_page('http://twitter.com/FGRibreau', boolean infos, boolean images, boolean save);

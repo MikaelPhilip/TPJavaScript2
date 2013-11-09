@@ -1,6 +1,5 @@
 Ceci est le repository pour le second exercice du Tp de JavaScript
 
-Il contient un fichier js: "Spider.js".
+Il contient un fichier js: "Spider.js".Il suffit de le charger avec node.js
 
-Il y aura dans la semaine l'ajout de la possibilité de sauvegarder dans des fichiers une copie des pages webs retrouvées
-et une interface graphique (mini site web) qui utilisera le script.
+Ne pas oublier,lors du test de la commande lançant le script, d'utiliser et de manipuler les nouveaux paramêtres rajoutés.
