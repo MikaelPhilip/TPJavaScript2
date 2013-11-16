@@ -76,7 +76,7 @@ var html_content = mongoose.model('content', html_contents);
 *
 * `get_page` will emit
 */
-/* ADD: Fonction qui permet d'indiquer et de se connecter sur la BDD*/
+/* ADD: Fonction qui de se connecter sur la BDD*/
 //See: http://atinux.developpez.com/tutoriels/javascript/mongodb-nodejs-mongoose/
 function init_bdd(){
 mongoose.connect('mongodb://localhost/Spider', function(err) {
@@ -89,13 +89,14 @@ mongoose.connect('mongodb://localhost/Spider', function(err) {
 function stop_bdd(){
 mongoose.connection.close();
 }
+
+
 /* MODIFY: get_page est modifiée de façon à acceuillir trois nouveaux arguments booléen : 
 *"infos" permet de dire si on veut voir les détail sur la recherche.
 *"img" permet d'indiquer si on cherche uniquement des images.
 *"sauv" indique si l'on veut sauvegarder dans une bdd la recherche. */
 function get_page(page_url,infos,img,sauv){
 em.emit('page:scraping', page_url);
-
 //Initialisation des variables des stats des recherches (pour le calcul de la durée de la recherche)
 start = new Date().getTime();  
 nbResu =0;
@@ -123,7 +124,8 @@ stop_bdd();
 }
 });
 }
- 
+
+
 /**
 * Extract links from the web pagr
 * @param {String} html_str String that represents the HTML page
@@ -146,14 +148,14 @@ em.emit('search:info', url, sauv);
 }
 });
 }
- 
- 
+
+
 function handle_new_url(from_page_url, from_page_str, url){
 // Add the url to the queue
 queue.push(url);
 }
- 
- 
+
+
 em.on('page:scraping', function(page_url){
 console.log('Loading... ', page_url);
 });
@@ -226,6 +228,7 @@ var title= html.slice((pos1+7),pos2);
 if (pos1 !== -1 && pos2 !== -1){
 console.log("Titre de la page:" + title);
 }
+
 // Si on souhaite sauvegarder le contenus de la page trouvé dans une BDD
 if(sauv){
 // On crée une instance pour enregistrer la donnée
