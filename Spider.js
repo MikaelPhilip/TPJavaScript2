@@ -6,15 +6,18 @@
 
 /** Améliorations par rapport au modéle de base:
 *
-*Plus d'infos pour chaque url trouvé: Le titre de la page apparait si elle existe (A noter que cette amélioration à un probleme: malgré l'ordre d'execution dans le code, l'affichage des titres ce fait aprés la liste des liens trouvé (chaque titre devrait en dessous du lien qui correspond, corrigable avec une API).
+*Plus d'infos pour chaque url trouvé: Le titre de la page apparait si elle existe (A noter que cette amélioration à un probleme: malgré l'ordre d'execution dans le code, l'affichage des titres ce fait aprés la liste des liens trouvé (chaque titre devrait être en dessous du lien qui correspond, corrigable avec une API).
 *
 *Des stats pour les recherches: nombres de résultats trouvés, temps d'execution de la recherche.
 *
-*Séparation des url des sites et des url qui pointent vers des images: suivant le choix fait on affichera que les url de site web ou que les url des images en lien avec la recherche effectuée afin que notre recherche ne soit pas "parasité" par des les listes d'images quand on veut que des sites web 
+*Séparation des url des sites et des url qui pointent vers des images: suivant le choix fait on affichera que les url qui amménes à un site web ou que les url des images. Tout cela dans le but d'éviter, par exemple, que notre recherche soit "parasitée" par des listes d'images quand on veut que des sites web.
 *
-*Ajout de la possibilité de sauvegarder sur une base de donnée les résultats d'une recherche mais aussi le contenu html des pages si l'on souhaite plus des informations supplémentaires.
+*Ajout de la possibilité de sauvegarder sur une base de donnée les résultats d'une recherche mais aussi le contenu html des pages si l'on souhaite plus d'informations supplémentaires.
 *
-*On a trois options supplémentaires lors du lancement de la recherche pour indiquer si on cherche des images ou des sites et si on veut voir les infos supplémentaires sur la recherche ou juste la liste des liens enfin la derniére option indique si l'on souhaite suavegarder la recherche dans une BDD.
+*Ajout d'un controle pour les recherches: On a trois options supplémentaires lors du lancement de la recherche pour indiquer:
+*Si on cherche des images ou des sites 
+*Si on veut voir les infos supplémentaires sur la recherche ou juste la liste des liens 
+*Si l'on souhaite suavegarder la recherche dans une BDD.
 *
 *ADD: Ajout fait pour le tp.
 *
@@ -49,21 +52,19 @@ var url = require('url');
 var mongoose = require('mongoose');
 
 // ADD: Variables pour compter le nb de résultats et la durée de la recherche 
-var nbResu = 0; // On n'utilise pas la propriété queue.length à la place car celui-ci accumule l'ensemble des resultats des différentes recherches donc il indiquerait le nb de résultat de toutes les recherches et pas juste celui de la derniere recherche
+var nbResu = 0; // On n'utilise pas la propriété queue.length à la place car celle-ci accumule l'ensemble des resultats des différentes recherches donc elle indiquerait le nb de résultat de toutes les recherches et pas juste celui de la derniére recherche
 var start = new Date().getTime();  
-var EXTRACT_IMG_REG = /\.(png|jpg|gif|bmp|ico)$/; //Expression réguliére pour trier liens finissant par des noms d'extension d'images
+var EXTRACT_IMG_REG = /\.(png|jpg|gif|bmp|ico)$/; //Expression réguliére pour trier les liens finissant par des noms d'extension d'images
 
 // ADD: Création des schémas c'est à dire la création d'une structure qui est l'équivalent d'une table sql pour enregistrer les résultats
-var results = new mongoose.Schema({
+var results = new mongoose.Schema({ // Cette table sauvegardera que les liens trouvés
   link : { type : String} 
 });
-// Cette table sauvegardera que les liens trouvés
-var html_contents = new mongoose.Schema({
+var html_contents = new mongoose.Schema({ // Cette table sauvegardera les liens trouvés et le contenu des pages de chaque liens
   link : { type : String},
   content : { type : String}
 });
-// Cette table sauvegardera les liens trouvés et le contenu des pages de chaque liens
- 
+
 // ADD: Création des modéles : c'est à dire des objets qui vont servir à rajouter des données dans la table
 var result = mongoose.model('resultats', results);
 var html_content = mongoose.model('content', html_contents);
@@ -75,7 +76,6 @@ var html_content = mongoose.model('content', html_contents);
 *
 * `get_page` will emit
 */
-
 /* ADD: Fonction qui permet d'indiquer et de se connecter sur la BDD*/
 //See: http://atinux.developpez.com/tutoriels/javascript/mongodb-nodejs-mongoose/
 function init_bdd(){
@@ -191,21 +191,21 @@ line.save(function (err) {
 
 em.on('url', handle_new_url);
 
-//ADD: Ajout des nouveaux évenements
 
+/* ADD: Ajout des nouveaux évenements */
 em.on('search:info', function(newUrl,sauv){
-//See: http://nodejs.org/docs/v0.4.11/api/http.html#http.ServerRequest
-//On doit à partir de l'url obtenu récupérer le chemin et le nom d'hote sans le protocole devant
+// See: http://nodejs.org/docs/v0.4.11/api/http.html#http.ServerRequest
+// On doit à partir de l'url obtenu récupérer le chemin et le nom d'hote sans le protocole devant
 
 // Recuperer le chemin
-var parseUrl = url.parse(newUrl,true); //on se sert d'un module pour récuperer le chemin
+var parseUrl = url.parse(newUrl,true); // On se sert d'un module pour récuperer le chemin
 var pathUrl = parseUrl.pathname;
 
 // Le nom d'hote sans le protocole
-var posf= newUrl.indexOf(parseUrl.pathname); //On détermine la position du prémier caractére qui indique le chemin
+var posf= newUrl.indexOf(parseUrl.pathname); // On détermine la position du prémier caractére qui indique le chemin
 var hoteUrl = newUrl.slice(0,posf);
-var proto = hoteUrl.split("://"); //On sépare le protocole du reste
-hoteUrl = proto[1]; //On récupére le nom de l'hote
+var proto = hoteUrl.split("://"); // On sépare le protocole du reste
+hoteUrl = proto[1]; // On récupére le nom de l'hote
 
 // Var option est un objet qui contient les propriétés nécesaires pour obtenir la page html
 var options = {
@@ -216,13 +216,13 @@ path: pathUrl
 
 // Appel de la fonction get pour avoir en réponse la page html correspondant à l'url: c'est une requete GET en HTTP qui est envoyé
 http.get(options, function(res) {
-/* On recupére le corps de réponse contenant le code html de la page*/
+// On recupére le corps de réponse contenant le code html de la page
 res.on('data', function (chunk) {
 var html = chunk +"";
 var pos1= html.indexOf("<title>");
 var pos2= html.indexOf("</title>");
 var title= html.slice((pos1+7),pos2);
-// Si on a trouvé la balise <title> et </title> alors
+// Si on a trouvé la balise <title> et </title> alors on affiche le titre de la page
 if (pos1 !== -1 && pos2 !== -1){
 console.log("Titre de la page:" + title);
 }
