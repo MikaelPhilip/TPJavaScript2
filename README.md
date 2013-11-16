@@ -12,4 +12,4 @@ get_page('http://www.url.com', boolean infos, boolean images, boolean save)
 
 --> save = true si vous souhaitez la recherche dans une BDD (mongoBD).
 
-Réalisé par Philip Mikael LP SIL Présentiel 
+Réalisé: par Philip Mikael LP SIL Présentiel 
