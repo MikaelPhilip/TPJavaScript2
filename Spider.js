@@ -76,7 +76,7 @@ var html_content = mongoose.model('content', html_contents);
 *
 * `get_page` will emit
 */
-/* ADD: Fonction qui de se connecter sur la BDD*/
+/* ADD: Fonction qui permet de se connecter sur la BDD*/
 //See: http://atinux.developpez.com/tutoriels/javascript/mongodb-nodejs-mongoose/
 function init_bdd(){
 mongoose.connect('mongodb://localhost/Spider', function(err) {
