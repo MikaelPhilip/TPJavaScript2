@@ -6,18 +6,26 @@
 
 /** Améliorations par rapport au modéle de base:
 *
-*Plus d'infos pour chaque url trouvé: Le titre de la page apparait si elle existe (A noter que cette amélioration à un probleme: malgré l'ordre d'execution dans le code, l'affichage des titres ce fait aprés la liste des liens trouvé (chaque titre devrait être en dessous du lien qui correspond, corrigable avec une API).
+*Plus d'infos pour chaque url trouvé: Le titre de la page apparait si elle existe 
+* (A noter que cette amélioration à un probleme: malgré l'ordre d'execution dans le code, 
+* l'affichage des titres ce fait aprés la liste des liens trouvé (chaque titre devrait être 
+* en dessous du lien qui correspond, corrigable avec une API).
 *
 *Des stats pour les recherches: nombres de résultats trouvés, temps d'execution de la recherche.
 *
-*Séparation des url des sites et des url qui pointent vers des images: suivant le choix fait on affichera que les url qui amménes à un site web ou que les url des images. Tout cela dans le but d'éviter, par exemple, que notre recherche soit "parasitée" par des listes d'images quand on veut que des sites web.
+*Séparation des url des sites et des url qui pointent vers des images: suivant le choix fait 
+* on affichera que les url qui amménes à un site web ou que les url des images. 
+* Tout cela dans le but d'éviter, par exemple, que notre recherche soit "parasitée" par des listes 
+* d'images quand on veut que des sites web.
 *
-*Ajout de la possibilité de sauvegarder sur une base de donnée les résultats d'une recherche mais aussi le contenu html des pages si l'on souhaite plus d'informations supplémentaires.
+*Ajout de la possibilité de sauvegarder sur une base de donnée les résultats d'une recherche 
+* mais aussi le contenu html des pages si l'on souhaite plus d'informations supplémentaires.
 *
-*Ajout d'un controle pour les recherches: On a trois options supplémentaires lors du lancement de la recherche pour indiquer:
-*Si on cherche des images ou des sites 
-*Si on veut voir les infos supplémentaires sur la recherche ou juste la liste des liens 
-*Si l'on souhaite suavegarder la recherche dans une BDD.
+*Ajout d'un controle pour les recherches: 
+*On a trois options supplémentaires lors du lancement de la recherche pour indiquer:
+*->Si on cherche des images ou des sites 
+*->Si on veut voir les infos supplémentaires sur la recherche ou juste la liste des liens 
+*->Si l'on souhaite suavegarder la recherche dans une BDD.
 *
 *ADD: Ajout fait pour le tp.
 *
@@ -229,7 +237,7 @@ if (pos1 !== -1 && pos2 !== -1){
 console.log("Titre de la page:" + title);
 }
 
-// Si on souhaite sauvegarder le contenus de la page trouvé dans une BDD
+// Si on souhaite sauvegarder le contenu de la page trouvé dans une BDD
 if(sauv){
 // On crée une instance pour enregistrer la donnée
 var content = new html_content();
